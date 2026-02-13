@@ -77,6 +77,9 @@ def _get_vector_store(collection_name: str) -> ChromaVectorStore:
     return ChromaVectorStore(chroma_collection=chroma_collection)
 
 
+CHROMA_MAX_BATCH = 4000  # ChromaDB max is ~5461, use 4000 for safety
+
+
 def _build_pipeline(vector_store: ChromaVectorStore, chunk_size: int, chunk_overlap: int) -> IngestionPipeline:
     """Create an ingestion pipeline with specified chunking parameters."""
     return IngestionPipeline(
@@ -86,6 +89,18 @@ def _build_pipeline(vector_store: ChromaVectorStore, chunk_size: int, chunk_over
         ],
         vector_store=vector_store,
     )
+
+
+def _run_pipeline_batched(pipeline: IngestionPipeline, docs: list[Document]) -> int:
+    """Run ingestion pipeline in batches to avoid ChromaDB batch size limits."""
+    total_nodes = 0
+    for i in range(0, len(docs), CHROMA_MAX_BATCH):
+        batch = docs[i:i + CHROMA_MAX_BATCH]
+        if len(docs) > CHROMA_MAX_BATCH:
+            print(f"  Batch {i // CHROMA_MAX_BATCH + 1}: {len(batch)} documents")
+        nodes = pipeline.run(documents=batch, show_progress=True)
+        total_nodes += len(nodes)
+    return total_nodes
 
 
 def _verify_collection(collection_name: str) -> int:
@@ -119,7 +134,7 @@ def ingest_works(persona_id: str):
         recursive=True,
         required_exts=[".txt", ".md"],
         filename_as_id=True,
-    ).load_data(num_workers=4)
+    ).load_data()
 
     # Enrich metadata
     for doc in docs:
@@ -138,8 +153,8 @@ def ingest_works(persona_id: str):
     pipeline = _build_pipeline(vector_store, chunk_size, chunk_overlap)
 
     print(f"  Chunking: size={chunk_size}, overlap={chunk_overlap}")
-    nodes = pipeline.run(documents=docs, num_workers=4, show_progress=True)
-    print(f"  Ingested {len(nodes)} nodes")
+    nodes = _run_pipeline_batched(pipeline, docs)
+    print(f"  Ingested {nodes} nodes")
     _verify_collection(collection_name)
 
 
@@ -187,8 +202,8 @@ def ingest_quotes(persona_id: str):
     pipeline = _build_pipeline(vector_store, chunk_size, chunk_overlap)
 
     print(f"  Chunking: size={chunk_size}, overlap={chunk_overlap}")
-    nodes = pipeline.run(documents=docs, num_workers=4, show_progress=True)
-    print(f"  Ingested {len(nodes)} nodes")
+    nodes = _run_pipeline_batched(pipeline, docs)
+    print(f"  Ingested {nodes} nodes")
     _verify_collection(collection_name)
 
 
@@ -234,7 +249,7 @@ def ingest_profile(persona_id: str):
             recursive=True,
             required_exts=[".txt", ".md"],
             filename_as_id=True,
-        ).load_data(num_workers=4)
+        ).load_data()
 
         for doc in extra_docs:
             fp = doc.metadata.get("file_path", "")
@@ -256,8 +271,8 @@ def ingest_profile(persona_id: str):
     pipeline = _build_pipeline(vector_store, chunk_size, chunk_overlap)
 
     print(f"  Chunking: size={chunk_size}, overlap={chunk_overlap}")
-    nodes = pipeline.run(documents=docs, num_workers=4, show_progress=True)
-    print(f"  Ingested {len(nodes)} nodes")
+    nodes = _run_pipeline_batched(pipeline, docs)
+    print(f"  Ingested {nodes} nodes")
     _verify_collection(collection_name)
 
 

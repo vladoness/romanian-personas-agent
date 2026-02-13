@@ -23,7 +23,12 @@ from config import settings
 # Shared HTTP helpers
 # ---------------------------------------------------------------------------
 
+# Wikimedia requires a descriptive User-Agent per their API policy
 HEADERS = {
+    "User-Agent": "RomanianPersonasAgent/1.0 (educational-project; contact@example.com)",
+}
+# Separate headers for non-Wikimedia sites
+BROWSER_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -138,8 +143,7 @@ async def get_wikisource_work_urls(client: httpx.AsyncClient, author_url: str) -
 
 
 async def scrape_wikisource_text(client: httpx.AsyncClient, url: str) -> str | None:
-    """Extract clean text from a Wikisource page using MediaWiki API."""
-    # Convert wiki URL to API call for plain text
+    """Extract clean text from a Wikisource page using MediaWiki parse API."""
     try:
         # Extract page title from URL
         if "/wiki/" in url:
@@ -147,12 +151,12 @@ async def scrape_wikisource_text(client: httpx.AsyncClient, url: str) -> str | N
         else:
             return None
 
-        api_url = f"https://ro.wikisource.org/w/api.php"
+        # Use parse API to get wikitext, then clean markup
+        api_url = "https://ro.wikisource.org/w/api.php"
         params = {
-            "action": "query",
-            "titles": page_title,
-            "prop": "extracts",
-            "explaintext": True,
+            "action": "parse",
+            "page": page_title,
+            "prop": "wikitext",
             "format": "json",
         }
 
@@ -160,18 +164,47 @@ async def scrape_wikisource_text(client: httpx.AsyncClient, url: str) -> str | N
         resp.raise_for_status()
         data = resp.json()
 
-        pages = data.get("query", {}).get("pages", {})
-        for page_id, page_data in pages.items():
-            if page_id == "-1":
-                return None
-            text = page_data.get("extract", "")
-            if text and len(text) > 50:
-                return text
+        if "parse" not in data:
+            return None
+
+        wikitext = data["parse"]["wikitext"]["*"]
+
+        # Check if this is a disambiguation or redirect page
+        if "{{dezambig}}" in wikitext.lower() or "#redirect" in wikitext.lower():
+            return None
+
+        # Strip wikitext markup for clean text
+        clean = _clean_wikitext(wikitext)
+
+        if clean and len(clean) > 50:
+            return clean
 
         return None
     except Exception as e:
-        print(f"  Error fetching Wikisource text from {url}: {e}")
+        print(f"    Error fetching Wikisource text from {url}: {e}")
         return None
+
+
+def _clean_wikitext(text: str) -> str:
+    """Remove wikitext markup, keeping clean readable text."""
+    # Remove templates {{...}}
+    text = re.sub(r"\{\{[^}]*\}\}", "", text)
+    # Remove nested templates
+    text = re.sub(r"\{\{[^}]*\}\}", "", text)
+    # Convert wikilinks [[target|display]] or [[target]] to display text
+    text = re.sub(r"\[\[([^|\]]*\|)?([^\]]*)\]\]", r"\2", text)
+    # Remove bold/italic markup
+    text = re.sub(r"'{2,3}", "", text)
+    # Remove <ref> tags and content
+    text = re.sub(r"<ref[^>]*>.*?</ref>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<ref[^/]*/?>", "", text)
+    # Remove HTML tags but keep content
+    text = re.sub(r"</?(?:poem|center|div|span|small|big|nowiki|br\s*/?)>", "", text)
+    # Remove category links
+    text = re.sub(r"\[\[Categorie:[^\]]*\]\]", "", text)
+    # Clean up whitespace
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 async def scrape_works_for_persona(client: httpx.AsyncClient, persona_id: str):
@@ -212,7 +245,7 @@ async def scrape_works_for_persona(client: httpx.AsyncClient, persona_id: str):
             md_content = f"# {title}\n\nSursa: {url}\n\n{text}"
             dest.write_text(md_content, encoding="utf-8")
             scraped += 1
-            await asyncio.sleep(0.3)  # Rate limit
+            await asyncio.sleep(1.0)  # Rate limit per Wikimedia policy
         else:
             print(f"    Skipped (no content): {title}")
 
@@ -245,8 +278,35 @@ WIKIPEDIA_PROFILE_URLS = {
 
 
 async def scrape_wikipedia_profile(client: httpx.AsyncClient, url: str, lang: str) -> str | None:
-    """Extract clean text from a Wikipedia article."""
+    """Extract clean text from a Wikipedia article via MediaWiki API."""
     try:
+        from urllib.parse import unquote
+
+        # Use MediaWiki API for cleaner extraction
+        if "wikipedia.org/wiki/" in url:
+            page_title = unquote(url.split("/wiki/")[-1])
+            wiki_domain = url.split("/wiki/")[0]
+            api_url = f"{wiki_domain}/w/api.php"
+            params = {
+                "action": "query",
+                "titles": page_title,
+                "prop": "extracts",
+                "explaintext": True,
+                "format": "json",
+            }
+            resp = await client.get(api_url, params=params, follow_redirects=True)
+            resp.raise_for_status()
+            data = resp.json()
+
+            pages = data.get("query", {}).get("pages", {})
+            for page_id, page_data in pages.items():
+                if page_id == "-1":
+                    return None
+                text = page_data.get("extract", "")
+                if text and len(text) > 100:
+                    return text
+
+        # Fallback to trafilatura
         import trafilatura
 
         html = await fetch_page(client, url)
@@ -286,7 +346,7 @@ async def scrape_profile_for_persona(client: httpx.AsyncClient, persona_id: str)
         else:
             print(f"  Failed to extract content")
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1.0)  # Rate limit per Wikimedia policy
 
 
 # ---------------------------------------------------------------------------
