@@ -320,7 +320,21 @@ async def extract_for_persona(persona_id: str):
     added = add_unique(baked_quotes)
     print(f"  {added} curated quotes from persona config")
 
-    # Step 3: Scrape online quote sources
+    # Step 3: Read scraped quotes (from scraper.py)
+    print("\n  --- From scraped quotes ---")
+    scraped_file = Path(settings.data_dir) / persona_id / "quotes" / "scraped_quotes.jsonl"
+    if scraped_file.exists():
+        scraped_quotes = []
+        with open(scraped_file, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    scraped_quotes.append(json.loads(line))
+        added = add_unique(scraped_quotes)
+        print(f"  {len(scraped_quotes)} scraped quotes, {added} unique")
+    else:
+        print(f"  No scraped_quotes.jsonl found (run scraper first)")
+
+    # Step 4: Scrape online quote sources
     print("\n  --- From online sources ---")
     async with httpx.AsyncClient(timeout=30.0, headers=HEADERS) as client:
         wikiquote_quotes = await scrape_wikiquote(client, persona_id)
