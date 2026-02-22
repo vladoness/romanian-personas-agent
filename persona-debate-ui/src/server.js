@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
+const basicAuth = require('express-basic-auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,8 +13,27 @@ const MCP_SERVER_URL = process.env.MCP_SERVER_URL || 'http://3.83.102.160:8080';
 // Tavily API key (optional - for web search)
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
+// Password protection (optional - set ACCESS_PASSWORD env var to enable)
+const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD;
+
 app.use(cors());
 app.use(express.json());
+
+// Basic auth middleware (only if ACCESS_PASSWORD is set)
+if (ACCESS_PASSWORD) {
+  console.log('🔒 Password protection ENABLED');
+  app.use(basicAuth({
+    users: { 'admin': ACCESS_PASSWORD },
+    challenge: true,
+    realm: 'Romanian Personas Debate',
+    unauthorizedResponse: (req) => {
+      return 'Acces restricționat. Introduceți parola pentru a continua.';
+    }
+  }));
+} else {
+  console.log('🔓 Password protection DISABLED (set ACCESS_PASSWORD to enable)');
+}
+
 app.use(express.static('public'));
 
 // Persona metadata
