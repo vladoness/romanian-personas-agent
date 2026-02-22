@@ -45,17 +45,26 @@ python -m agent.mcp_server --transport stdio             # local/Claude Code std
 # Tests
 python test_personas.py       # verify persona loading
 python test_mcp_server.py     # end-to-end MCP server test
+pytest                         # run all tests (requires dev dependencies)
 
 # Docker
-docker build -t romanian-personas-agent .
+# IMPORTANT: Must have chroma_db/ and data/ built locally first
+# If not built, run: python -m ingest.scraper && \
+#                    python -m ingest.extract_quotes && \
+#                    python -m ingest.run_ingestion
+
+docker build -t romanian-personas-agent .  # copies pre-built chroma_db/ (123MB)
 docker run -p 8080:8080 --env-file .env romanian-personas-agent
+curl http://localhost:8080/health  # verify health endpoint
 ```
 
 ## Architecture
 
 ### MCP Server (`agent/mcp_server.py`)
 
-Single `ask_persona(query, persona)` tool exposed via FastMCP. Validates persona ID, runs 3 parallel async searches across ChromaDB collections, assembles context with information hierarchy, and synthesizes response via Claude Opus using persona-specific voice prompt.
+Single `ask_persona(query, persona)` tool exposed via FastMCP. Validates persona ID, runs 3 parallel async searches across ChromaDB collections, assembles context with information hierarchy, and synthesizes response via Claude Opus 4.6 using persona-specific voice prompt.
+
+**Authentication:** Supports Bearer token or X-API-Key header (if MCP_API_KEY set). Health endpoint (`/health`) is unauthenticated.
 
 ### Retrieval Flow
 
@@ -69,6 +78,11 @@ Three parallel searches per query via `asyncio.create_task`:
 - Profile = the LENS (biographical context, placed first)
 - Quotes = voice calibration (tone, aphorisms, phrasing)
 - Works = primary textual evidence (actual writings)
+
+**Chunk truncation in context assembly:**
+- Profile chunks: 1200 chars max
+- Works chunks: 600 chars max
+- Quotes chunks: no truncation
 
 ### Persona System
 
@@ -90,7 +104,11 @@ Lazy-loaded retrievers cached in `dict[(persona_id, collection_type)]`.
 
 Three-stage pipeline: scraping → quote extraction → ChromaDB ingestion.
 
-Data sources per persona:
+**Constraints:**
+- ChromaDB batch size limit: 4000 vectors per batch (safety margin from 5461 hard limit)
+- Embedding model: text-embedding-3-small via OpenAI API
+
+**Data sources per persona:**
 - **Eminescu**: ro.wikisource.org (300+ poems), Wikipedia
 - **Caragiale**: ro.wikisource.org (plays + 100+ sketches), Wikipedia
 - **Cioran**: ro.wikisource.org + archive.org, Wikipedia (RO/EN)
@@ -112,10 +130,32 @@ Data sources per persona:
 ## Environment Variables
 
 Required in `.env`:
-- `ANTHROPIC_API_KEY` — for Claude synthesis
+- `ANTHROPIC_API_KEY` — for Claude Opus 4.6 synthesis
 - `OPENAI_API_KEY` — for text-embedding-3-small embeddings
 - `MCP_API_KEY` — for remote MCP auth (optional; unauthenticated if missing)
 
+Optional overrides (defaults in `config.py`):
+- `SYNTHESIS_MODEL` — default: claude-opus-4-6
+- `EMBEDDING_MODEL` — default: text-embedding-3-small
+- `CHROMA_PERSIST_DIR` — default: ./chroma_db
+- `DATA_DIR` — default: ./data
+
 ## Deployment
 
-Docker image bakes in `chroma_db/` and `data/` directories (pre-built locally). Deployed via AWS CodeBuild (`buildspec.yml`) to ECR, then ECS Fargate (1 vCPU, 4GB RAM). ALB health check hits `GET /health`.
+Docker image **copies** pre-built `chroma_db/` (123MB) and `data/` directories into the image. These must be built locally first by running the ingestion pipeline. Deployed via AWS CodeBuild (`buildspec.yml`) to ECR, then ECS Fargate (1 vCPU, 4GB RAM, consider 8GB for production). ALB health check hits `GET /health`.
+
+**Pre-deployment requirement:** Run local ingestion pipeline to generate ChromaDB (17K+ vectors, ~10-15 minutes one-time cost).
+
+## Implementation Notes
+
+**Retriever caching:** Retrievers are lazy-loaded and cached in `_retrievers` dict with key `(persona_id, collection_type)`. First query per persona/collection initializes the retriever.
+
+**Error handling:** If Claude synthesis fails, `ask_persona` returns raw context with error note. If ChromaDB search fails for a collection, continues with other collections.
+
+**Persona validation:** `get_persona(persona_id)` validates against `VALID_PERSONA_IDS` and raises ValueError for invalid IDs.
+
+**Adding new personas:**
+1. Create `personas/{id}/` directory with `__init__.py`, `persona.py`, `profile.md`
+2. Add to registry in `personas/__init__.py`
+3. Add data sources to scraper if available
+4. Run scraper → extract_quotes → run_ingestion

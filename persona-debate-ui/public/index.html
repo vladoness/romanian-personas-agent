@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dezbatere între Personalități Istorice Românești</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2.5em;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 1.1em;
+    }
+
+    .input-section {
+      background: #f8f9fa;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 1.1em;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 100px;
+      transition: border-color 0.3s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .personas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .persona-card {
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .persona-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .persona-card.selected {
+      border-color: #667eea;
+      background: #f0f4ff;
+    }
+
+    .persona-card .order-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #667eea;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .persona-card.selected .order-badge {
+      display: flex;
+    }
+
+    .persona-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .persona-title {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+
+    button {
+      padding: 15px 40px;
+      font-size: 1.1em;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+
+    .btn-reset {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-reset:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+    }
+
+    .results-section {
+      margin-top: 40px;
+    }
+
+    .round-container {
+      margin-bottom: 40px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 25px;
+    }
+
+    .round-header {
+      font-size: 1.5em;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid #667eea;
+    }
+
+    .round-question {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #667eea;
+      font-size: 1.1em;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .response-card {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      margin-bottom: 20px;
+      border-left: 5px solid;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .response-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .response-number {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 15px;
+      flex-shrink: 0;
+    }
+
+    .response-persona {
+      flex: 1;
+    }
+
+    .response-persona-name {
+      font-size: 1.3em;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 3px;
+    }
+
+    .response-persona-title {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .response-text {
+      color: #333;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      font-size: 1.05em;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 1.2em;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .error {
+      background: #fee;
+      border: 2px solid #fcc;
+      border-radius: 8px;
+      padding: 20px;
+      color: #c33;
+      margin: 20px 0;
+      font-weight: 500;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎭 Dezbatere Istorică</h1>
+    <p class="subtitle">Întreabă personalitățile istorice românești despre orice subiect</p>
+
+    <div class="input-section">
+      <div class="form-group">
+        <label for="question">Întrebarea ta pentru dezbatere:</label>
+        <textarea
+          id="question"
+          placeholder="Ex: Ce părere aveți despre politica românească actuală? Cum vedeți viitorul României?"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Selectează personalitățile (în ordinea în care vor răspunde):</label>
+        <div class="personas-grid" id="personasGrid"></div>
+      </div>
+
+      <div class="button-group">
+        <button id="startBtn" class="btn-primary">Începe Dezbaterea</button>
+        <button id="continueBtn" class="btn-secondary hidden">Continuă Dezbaterea</button>
+        <button id="resetBtn" class="btn-reset hidden">Resetează</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <div class="loading-text">Se pregătește dezbaterea...</div>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+
+    <div id="results" class="results-section"></div>
+  </div>
+
+  <script>
+    const PERSONAS = {
+      eminescu: {
+        name: 'Mihai Eminescu',
+        title: 'Poetul național (1850-1889)',
+        color: '#8b4513'
+      },
+      caragiale: {
+        name: 'Ion Luca Caragiale',
+        title: 'Dramaturg și satirist (1852-1912)',
+        color: '#2e7d32'
+      },
+      bratianu: {
+        name: 'Ion C. Brătianu',
+        title: 'Om de stat (1821-1891)',
+        color: '#1565c0'
+      },
+      eliade: {
+        name: 'Mircea Eliade',
+        title: 'Istoric al religiilor (1907-1986)',
+        color: '#6a1b9a'
+      },
+      cioran: {
+        name: 'Emil Cioran',
+        title: 'Filosof și eseist (1911-1995)',
+        color: '#c62828'
+      }
+    };
+
+    let selectedPersonas = [];
+    let allRounds = [];
+
+    // Initialize personas grid
+    function initPersonasGrid() {
+      const grid = document.getElementById('personasGrid');
+      Object.keys(PERSONAS).forEach(key => {
+        const persona = PERSONAS[key];
+        const card = document.createElement('div');
+        card.className = 'persona-card';
+        card.dataset.persona = key;
+        card.innerHTML = `
+          <div class="order-badge"></div>
+          <div class="persona-name">${persona.name}</div>
+          <div class="persona-title">${persona.title}</div>
+        `;
+        card.addEventListener('click', () => togglePersona(key, card));
+        grid.appendChild(card);
+      });
+    }
+
+    function togglePersona(personaKey, cardElement) {
+      const index = selectedPersonas.indexOf(personaKey);
+
+      if (index > -1) {
+        // Deselect
+        selectedPersonas.splice(index, 1);
+        cardElement.classList.remove('selected');
+      } else {
+        // Select
+        selectedPersonas.push(personaKey);
+        cardElement.classList.add('selected');
+      }
+
+      // Update order badges
+      updateOrderBadges();
+    }
+
+    function updateOrderBadges() {
+      document.querySelectorAll('.persona-card').forEach(card => {
+        const personaKey = card.dataset.persona;
+        const index = selectedPersonas.indexOf(personaKey);
+        const badge = card.querySelector('.order-badge');
+
+        if (index > -1) {
+          badge.textContent = index + 1;
+        }
+      });
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').classList.toggle('hidden', !show);
+    }
+
+    function showError(message) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = message;
+      errorDiv.classList.remove('hidden');
+      setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+    }
+
+    async function startDebate() {
+      const question = document.getElementById('question').value.trim();
+
+      if (!question) {
+        showError('Te rog să introduci o întrebare!');
+        return;
+      }
+
+      if (selectedPersonas.length === 0) {
+        showError('Te rog să selectezi cel puțin o personalitate!');
+        return;
+      }
+
+      showLoading(true);
+      document.getElementById('startBtn').disabled = true;
+
+      // Create current round structure
+      const currentRound = {
+        question: question,
+        responses: []
+      };
+
+      // Add round container immediately
+      const roundDiv = createRoundContainer(allRounds.length + 1, question);
+      document.getElementById('results').appendChild(roundDiv);
+
+      try {
+        // Use fetch with streaming for SSE
+        const response = await fetch('/api/debate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: question,
+            personas: selectedPersonas,
+            previousRounds: allRounds
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'searching') {
+                document.querySelector('.loading-text').textContent = '🔍 ' + data.message;
+                document.getElementById('loading').classList.remove('hidden');
+              }
+              else if (data.type === 'search_complete') {
+                document.querySelector('.loading-text').textContent = '✓ ' + data.message;
+              }
+              else if (data.type === 'start') {
+                showLoading(false);
+                document.querySelector('.loading-text').textContent = `Dezbatere în curs... (0/${data.personaCount})`;
+                document.getElementById('loading').classList.remove('hidden');
+              }
+              else if (data.type === 'thinking') {
+                document.querySelector('.loading-text').textContent =
+                  `${PERSONAS[data.persona].name} se gândește... (${data.index + 1}/${selectedPersonas.length})`;
+              }
+              else if (data.type === 'response') {
+                // Add response to current round
+                currentRound.responses.push({
+                  persona: data.persona,
+                  response: data.response,
+                  timestamp: data.timestamp
+                });
+
+                // Display the response immediately
+                appendResponse(roundDiv, data, data.index);
+
+                // Scroll to new response
+                roundDiv.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+              else if (data.type === 'complete') {
+                allRounds.push(currentRound);
+                showLoading(false);
+                document.getElementById('continueBtn').classList.remove('hidden');
+                document.getElementById('resetBtn').classList.remove('hidden');
+              }
+              else if (data.type === 'error') {
+                throw new Error(data.message);
+              }
+            }
+          }
+        }
+
+      } catch (error) {
+        console.error('Error:', error);
+        showError(`Eroare: ${error.message}`);
+        showLoading(false);
+      } finally {
+        document.getElementById('startBtn').disabled = false;
+      }
+    }
+
+    function createRoundContainer(roundNumber, question) {
+      const roundDiv = document.createElement('div');
+      roundDiv.className = 'round-container';
+      roundDiv.innerHTML = `
+        <div class="round-header">Runda ${roundNumber}</div>
+        <div class="round-question">❓ ${question}</div>
+      `;
+      return roundDiv;
+    }
+
+    function appendResponse(roundDiv, responseData, index) {
+      const persona = PERSONAS[responseData.persona];
+      const responseCard = document.createElement('div');
+      responseCard.className = 'response-card';
+      responseCard.style.borderLeftColor = persona.color;
+      responseCard.style.opacity = '0';
+      responseCard.style.transform = 'translateY(20px)';
+
+      responseCard.innerHTML = `
+        <div class="response-header">
+          <div class="response-number">${index + 1}</div>
+          <div class="response-persona">
+            <div class="response-persona-name">${persona.name}</div>
+            <div class="response-persona-title">${persona.title}</div>
+          </div>
+        </div>
+        <div class="response-text">${responseData.response}</div>
+      `;
+
+      roundDiv.appendChild(responseCard);
+
+      // Animate in
+      setTimeout(() => {
+        responseCard.style.transition = 'all 0.5s ease';
+        responseCard.style.opacity = '1';
+        responseCard.style.transform = 'translateY(0)';
+      }, 10);
+    }
+
+    function displayResults() {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
+
+      allRounds.forEach((round, roundIndex) => {
+        const roundDiv = document.createElement('div');
+        roundDiv.className = 'round-container';
+
+        roundDiv.innerHTML = `
+          <div class="round-header">Runda ${roundIndex + 1}</div>
+          <div class="round-question">❓ ${round.question}</div>
+        `;
+
+        round.responses.forEach((response, idx) => {
+          const persona = PERSONAS[response.persona];
+          const responseCard = document.createElement('div');
+          responseCard.className = 'response-card';
+          responseCard.style.borderLeftColor = persona.color;
+
+          responseCard.innerHTML = `
+            <div class="response-header">
+              <div class="response-number">${idx + 1}</div>
+              <div class="response-persona">
+                <div class="response-persona-name">${persona.name}</div>
+                <div class="response-persona-title">${persona.title}</div>
+              </div>
+            </div>
+            <div class="response-text">${response.response}</div>
+          `;
+
+          roundDiv.appendChild(responseCard);
+        });
+
+        resultsDiv.appendChild(roundDiv);
+      });
+
+      // Scroll to latest round
+      resultsDiv.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function reset() {
+      if (confirm('Sigur vrei să resetezi întreaga dezbatere?')) {
+        allRounds = [];
+        document.getElementById('results').innerHTML = '';
+        document.getElementById('question').value = '';
+        document.getElementById('continueBtn').classList.add('hidden');
+        document.getElementById('resetBtn').classList.add('hidden');
+      }
+    }
+
+    // Event listeners
+    document.getElementById('startBtn').addEventListener('click', startDebate);
+    document.getElementById('continueBtn').addEventListener('click', startDebate);
+    document.getElementById('resetBtn').addEventListener('click', reset);
+
+    // Initialize
+    initPersonasGrid();
+  </script>
+</body>
+</html>
