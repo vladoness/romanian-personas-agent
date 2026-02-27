@@ -17,11 +17,16 @@ COPY personas/ ./personas/
 # Install Python deps
 RUN pip install --no-cache-dir .
 
-# Bake in the vector stores and data (pre-built locally)
-COPY chroma_db/ ./chroma_db/
-COPY data/ ./data/
+# Create directories for EFS volumes (will be mounted at runtime)
+# Note: For marketplace deployment, chroma_db and data are NOT baked in
+# They will be mounted from EFS at runtime in ECS
+RUN mkdir -p ./chroma_db ./data
 
 EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Run MCP server in streamable-http mode
 CMD ["python", "-m", "agent.mcp_server", "--transport", "streamable-http"]
