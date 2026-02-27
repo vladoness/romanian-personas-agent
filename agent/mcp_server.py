@@ -260,6 +260,35 @@ def _wrap_with_api_key_auth(app):
 
 
 # ---------------------------------------------------------------------------
+# Background registry reloader
+# ---------------------------------------------------------------------------
+
+_registry_reloader_task = None
+
+
+async def registry_reloader():
+    """Background task to reload registry every 30 seconds."""
+    from personas import reload_registry
+
+    logger.info("Registry reloader task started")
+    while True:
+        await asyncio.sleep(30)
+        try:
+            reload_registry()
+        except Exception as e:
+            logger.error(f"Failed to reload registry: {e}")
+
+
+def start_registry_reloader():
+    """Start the registry reloader background task."""
+    global _registry_reloader_task
+    if _registry_reloader_task is None:
+        loop = asyncio.get_event_loop()
+        _registry_reloader_task = loop.create_task(registry_reloader())
+        logger.info("Registry reloader background task created")
+
+
+# ---------------------------------------------------------------------------
 # Health check route
 # ---------------------------------------------------------------------------
 
@@ -288,10 +317,23 @@ def main():
 
     if args.transport == "stdio":
         logger.info("Starting MCP server in stdio mode")
+        # Note: Registry reloader not needed in stdio mode (local development)
         mcp.run(transport="stdio")
     else:
         logger.info(f"Starting MCP server on {settings.host}:{settings.port} (streamable-http)")
         starlette_app = mcp.streamable_http_app()
+
+        # Wrap app to start background tasks on startup
+        from starlette.applications import Starlette
+        from starlette.middleware import Middleware
+        from starlette.routing import Mount
+
+        @starlette_app.on_event("startup")
+        async def startup_event():
+            """Start background tasks when the server starts."""
+            logger.info("Starting registry reloader background task")
+            asyncio.create_task(registry_reloader())
+
         wrapped_app = _wrap_with_api_key_auth(starlette_app)
 
         import uvicorn

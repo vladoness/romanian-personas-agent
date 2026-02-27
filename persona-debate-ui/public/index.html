@@ -351,45 +351,47 @@
   </div>
 
   <script>
-    const PERSONAS = {
-      eminescu: {
-        name: 'Mihai Eminescu',
-        title: 'Poetul național (1850-1889)',
-        color: '#8b4513'
-      },
-      caragiale: {
-        name: 'Ion Luca Caragiale',
-        title: 'Dramaturg și satirist (1852-1912)',
-        color: '#2e7d32'
-      },
-      bratianu: {
-        name: 'Ion C. Brătianu',
-        title: 'Om de stat (1821-1891)',
-        color: '#1565c0'
-      },
-      eliade: {
-        name: 'Mircea Eliade',
-        title: 'Istoric al religiilor (1907-1986)',
-        color: '#6a1b9a'
-      },
-      cioran: {
-        name: 'Emil Cioran',
-        title: 'Filosof și eseist (1911-1995)',
-        color: '#c62828'
-      }
-    };
+    // PERSONAS will be loaded dynamically from API
+    let PERSONAS = {};
 
     let selectedPersonas = [];
     let allRounds = [];
 
-    // Initialize personas grid
-    function initPersonasGrid() {
+    // Load personas from server
+    async function loadPersonas() {
+      try {
+        console.log('Loading personas from API...');
+        const response = await fetch('/api/personas');
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        PERSONAS = await response.json();
+        console.log(`Loaded ${Object.keys(PERSONAS).length} personas`);
+        renderPersonaCards();
+      } catch (error) {
+        console.error('Failed to load personas:', error);
+        showError('Nu s-au putut încărca personalitățile. Verifică că serverul rulează.');
+      }
+    }
+
+    // Render persona cards (replaces initPersonasGrid)
+    function renderPersonaCards() {
       const grid = document.getElementById('personasGrid');
+      grid.innerHTML = ''; // Clear existing cards
+
       Object.keys(PERSONAS).forEach(key => {
         const persona = PERSONAS[key];
         const card = document.createElement('div');
         card.className = 'persona-card';
         card.dataset.persona = key;
+
+        // Preserve selection state if persona was already selected
+        if (selectedPersonas.includes(key)) {
+          card.classList.add('selected');
+        }
+
         card.innerHTML = `
           <div class="order-badge"></div>
           <div class="persona-name">${persona.name}</div>
@@ -398,6 +400,9 @@
         card.addEventListener('click', () => togglePersona(key, card));
         grid.appendChild(card);
       });
+
+      // Update order badges after rendering
+      updateOrderBadges();
     }
 
     function togglePersona(personaKey, cardElement) {
@@ -645,8 +650,19 @@
     document.getElementById('continueBtn').addEventListener('click', startDebate);
     document.getElementById('resetBtn').addEventListener('click', reset);
 
-    // Initialize
-    initPersonasGrid();
+    // Initialize - load personas on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPersonas();
+
+      // Auto-refresh personas every 30 seconds (don't interrupt active debates)
+      setInterval(() => {
+        // Only refresh if not currently in a debate
+        const isLoading = !document.getElementById('loading').classList.contains('hidden');
+        if (!isLoading) {
+          loadPersonas();
+        }
+      }, 30000);
+    });
   </script>
 </body>
 </html>

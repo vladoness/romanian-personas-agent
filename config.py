@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     port: int = 8080
     mcp_api_key: str = ""
 
+    # Marketplace & Admin Configuration
+    admin_password: str = ""
+    redis_url: str = "redis://localhost:6379/0"
+    database_url: str = "sqlite:///./personas.db"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

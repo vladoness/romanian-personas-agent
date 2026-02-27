@@ -36,8 +36,11 @@ if (ACCESS_PASSWORD) {
 
 app.use(express.static('public'));
 
-// Persona metadata
-const PERSONAS = {
+// FastAPI backend URL
+const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+
+// Hardcoded persona fallback (for backward compatibility)
+const HARDCODED_PERSONAS = {
   eminescu: {
     name: 'Mihai Eminescu',
     title: 'Poetul național (1850-1889)',
@@ -64,6 +67,49 @@ const PERSONAS = {
     color: '#c62828'
   }
 };
+
+// Persona cache with 30s TTL
+let PERSONAS_CACHE = null;
+let CACHE_TIMESTAMP = 0;
+const CACHE_TTL = 30000; // 30 seconds
+
+// Fetch personas from FastAPI backend
+async function getPersonas() {
+  const now = Date.now();
+
+  // Return cached data if still valid
+  if (PERSONAS_CACHE && (now - CACHE_TIMESTAMP) < CACHE_TTL) {
+    return PERSONAS_CACHE;
+  }
+
+  try {
+    console.log('Fetching personas from FastAPI backend...');
+    const response = await axios.get(`${FASTAPI_URL}/api/personas`, {
+      timeout: 5000
+    });
+
+    const dbPersonas = response.data.personas;
+
+    // Transform API response to legacy format
+    const personas = {};
+    for (const p of dbPersonas) {
+      personas[p.persona_id] = {
+        name: p.display_name,
+        title: `${p.birth_year}-${p.death_year || 'prezent'}`,
+        color: p.color
+      };
+    }
+
+    PERSONAS_CACHE = personas;
+    CACHE_TIMESTAMP = now;
+    console.log(`✓ Loaded ${Object.keys(personas).length} personas from API`);
+    return personas;
+  } catch (error) {
+    console.error('Failed to fetch personas from API:', error.message);
+    console.log('Falling back to hardcoded personas');
+    return HARDCODED_PERSONAS;
+  }
+}
 
 // Search the web for context about the question using Tavily API
 async function searchWebContext(question) {
@@ -165,12 +211,32 @@ async function askPersona(persona, query) {
   }
 }
 
+// API endpoint to get personas
+app.get('/api/personas', async (req, res) => {
+  try {
+    const personas = await getPersonas();
+    res.json(personas);
+  } catch (error) {
+    console.error('Error fetching personas:', error);
+    res.status(500).json({ error: 'Failed to fetch personas' });
+  }
+});
+
 // API endpoint for debate with streaming
 app.post('/api/debate', async (req, res) => {
   const { question, personas, previousRounds = [] } = req.body;
 
   if (!question || !personas || personas.length === 0) {
     return res.status(400).json({ error: 'Question and personas are required' });
+  }
+
+  // Validate personas against current list
+  const validPersonas = await getPersonas();
+  const invalidPersonas = personas.filter(p => !validPersonas[p]);
+  if (invalidPersonas.length > 0) {
+    return res.status(400).json({
+      error: `Invalid persona IDs: ${invalidPersonas.join(', ')}`
+    });
   }
 
   // Set up SSE headers
@@ -180,6 +246,7 @@ app.post('/api/debate', async (req, res) => {
 
   try {
     const roundResults = [];
+    const PERSONAS = validPersonas; // Use dynamically fetched personas
 
     // Build context from previous rounds (with truncation to avoid context overflow)
     let contextPrefix = '';

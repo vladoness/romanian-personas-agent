@@ -1,0 +1,153 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: personas-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    networks:
+      - personas-network
+    command: redis-server --appendonly yes
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: personas-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MCP_API_KEY=${MCP_API_KEY:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///./personas.db
+      - CHROMA_PERSIST_DIR=./chroma_db
+      - DATA_DIR=./data
+    volumes:
+      - chroma_data:/app/chroma_db
+      - upload_data:/app/data
+      - personas_db:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - personas-network
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mcp_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: personas-mcp-server
+    ports:
+      - "8080:8080"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MCP_API_KEY=${MCP_API_KEY:-}
+      - CHROMA_PERSIST_DIR=./chroma_db
+      - DATA_DIR=./data
+    volumes:
+      - chroma_data:/app/chroma_db
+      - upload_data:/app/data
+    networks:
+      - personas-network
+    command: python -m agent.mcp_server --transport streamable-http
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: personas-celery-worker
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_PERSIST_DIR=./chroma_db
+      - DATA_DIR=./data
+      - DATABASE_URL=sqlite:///./personas.db
+    volumes:
+      - chroma_data:/app/chroma_db
+      - upload_data:/app/data
+      - personas_db:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - personas-network
+    command: celery -A workers.celery_app worker --loglevel=info --concurrency=2
+
+  debate_ui:
+    build:
+      context: ./persona-debate-ui
+      dockerfile: Dockerfile
+    container_name: personas-debate-ui
+    ports:
+      - "3000:3000"
+    environment:
+      - MCP_SERVER_URL=http://mcp_server:8080
+    depends_on:
+      mcp_server:
+        condition: service_healthy
+    networks:
+      - personas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  admin_ui:
+    build:
+      context: ./admin-ui
+      dockerfile: Dockerfile
+    container_name: personas-admin-ui
+    ports:
+      - "3001:3001"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_API_PORT=8000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - personas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+    driver: local
+  chroma_data:
+    driver: local
+  upload_data:
+    driver: local
+  personas_db:
+    driver: local
+
+networks:
+  personas-network:
+    driver: bridge

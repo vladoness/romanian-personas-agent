@@ -1,0 +1,91 @@
+.create-persona {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.create-header {
+  margin-bottom: 30px;
+}
+
+.create-header h1 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.step-indicator {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.step {
+  flex: 1;
+  padding: 12px;
+  background: #e9ecef;
+  color: #6c757d;
+  text-align: center;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.step.active {
+  background: #667eea;
+  color: white;
+}
+
+.step.completed {
+  background: #28a745;
+  color: white;
+}
+
+.step-content {
+  margin-top: 30px;
+}
+
+.step-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.completion-card {
+  background: white;
+  border-radius: 8px;
+  padding: 60px 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.completion-icon {
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  margin: 0 auto 20px;
+  background: #28a745;
+  color: white;
+  border-radius: 50%;
+  font-size: 48px;
+  font-weight: bold;
+}
+
+.completion-card h2 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.completion-card p {
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 30px;
+}
+
+.completion-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}

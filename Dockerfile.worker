@@ -1,0 +1,29 @@
+FROM public.ecr.aws/docker/library/python:3.13-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy project files
+COPY pyproject.toml .
+COPY config.py .
+COPY workers/ ./workers/
+COPY models/ ./models/
+COPY ingest/ ./ingest/
+COPY personas/ ./personas/
+COPY agent/ ./agent/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir .
+
+# Pre-built vector stores and data (volume mount in docker-compose)
+RUN mkdir -p ./chroma_db ./data
+
+# No expose - worker only
+LABEL description="Celery worker for persona ingestion tasks"
+
+CMD ["celery", "-A", "workers.celery_app", "worker", "--loglevel=info"]
