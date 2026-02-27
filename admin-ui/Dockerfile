@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM public.ecr.aws/docker/library/node:18-alpine AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build 2>/dev/null || echo "No build script found, using src as-is"
 
 # Production stage
-FROM node:18-alpine
+FROM public.ecr.aws/docker/library/node:18-alpine
 
 WORKDIR /app
 
