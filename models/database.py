@@ -6,14 +6,15 @@ from contextlib import contextmanager
 from pathlib import Path
 import json
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-# Database path
+# Database path (can be overridden with DATABASE_URL env var)
 DATABASE_PATH = Path(__file__).parent.parent / "personas.db"
-DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DATABASE_PATH}")
 
 
 class Persona(Base):
