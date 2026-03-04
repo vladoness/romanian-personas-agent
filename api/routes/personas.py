@@ -117,7 +117,7 @@ def list_personas(
     personas = query.all()
 
     return {
-        "personas": [PersonaResponse.from_attributes(p) for p in personas],
+        "personas": [PersonaResponse.model_validate(p) for p in personas],
         "count": len(personas)
     }
 
