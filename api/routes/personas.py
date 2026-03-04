@@ -98,6 +98,7 @@ class PersonaDetail(PersonaResponse):
 @router.get("", response_model=dict)
 def list_personas(
     status: Optional[str] = None,
+    format: Optional[str] = None,
     db: Session = Depends(get_db_session)
 ):
     """
@@ -105,6 +106,7 @@ def list_personas(
 
     Query params:
     - status: Filter by status (draft, ingesting, active, failed). Default: active only
+    - format: Response format ('dict' for UI compatibility). Default: array
     """
     query = db.query(Persona)
 
@@ -116,6 +118,14 @@ def list_personas(
 
     personas = query.all()
 
+    # Legacy format for debate UI compatibility (keyed by persona_id)
+    if format == "dict":
+        return {
+            p.persona_id: PersonaResponse.model_validate(p).model_dump()
+            for p in personas
+        }
+
+    # Modern format (array with count)
     return {
         "personas": [PersonaResponse.model_validate(p) for p in personas],
         "count": len(personas)

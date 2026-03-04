@@ -361,7 +361,7 @@
     async function loadPersonas() {
       try {
         console.log('Loading personas from API...');
-        const response = await fetch('/api/personas');
+        const response = await fetch('/api/personas?format=dict');
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
