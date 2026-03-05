@@ -106,7 +106,7 @@ def list_personas(
 
     Query params:
     - status: Filter by status (draft, ingesting, active, failed). Default: active only
-    - format: Response format ('dict' for UI compatibility). Default: array
+    - format: Response format ('array' for admin UI). Default: dict for UI compatibility
     """
     query = db.query(Persona)
 
@@ -118,17 +118,17 @@ def list_personas(
 
     personas = query.all()
 
-    # Legacy format for debate UI compatibility (keyed by persona_id)
-    if format == "dict":
+    # Modern format (array with count) - only if explicitly requested
+    if format == "array":
         return {
-            p.persona_id: PersonaResponse.model_validate(p).model_dump()
-            for p in personas
+            "personas": [PersonaResponse.model_validate(p) for p in personas],
+            "count": len(personas)
         }
 
-    # Modern format (array with count)
+    # Default: Legacy dict format for debate UI compatibility (keyed by persona_id)
     return {
-        "personas": [PersonaResponse.model_validate(p) for p in personas],
-        "count": len(personas)
+        p.persona_id: PersonaResponse.model_validate(p).model_dump()
+        for p in personas
     }
 
 
