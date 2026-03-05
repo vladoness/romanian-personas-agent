@@ -126,8 +126,13 @@ def list_personas(
         }
 
     # Default: Legacy dict format for debate UI compatibility (keyed by persona_id)
+    # Transform to match UI expectations: name, title, color
     return {
-        p.persona_id: PersonaResponse.model_validate(p).model_dump()
+        p.persona_id: {
+            "name": p.display_name,
+            "title": f"{p.description.split('.')[0].split(',')[1].strip() if ',' in p.description else 'Personalitate istorică'} ({p.birth_year}-{p.death_year})",
+            "color": p.color
+        }
         for p in personas
     }
 
