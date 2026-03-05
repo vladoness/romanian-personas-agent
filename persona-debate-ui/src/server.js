@@ -84,7 +84,7 @@ async function getPersonas() {
 
   try {
     console.log('Fetching personas from FastAPI backend...');
-    const response = await axios.get(`${FASTAPI_URL}/api/personas`, {
+    const response = await axios.get(`${FASTAPI_URL}/api/personas?format=array`, {
       timeout: 5000
     });
 
