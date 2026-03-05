@@ -8,7 +8,7 @@ phases:
       - REGION=${AWS_DEFAULT_REGION:-us-east-1}
       - ECR_PREFIX="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
       - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR_PREFIX
-      - echo "Building 6 images for marketplace deployment..."
+      - echo "Building 5 images for marketplace deployment..."
 
   build:
     commands:
@@ -38,12 +38,6 @@ phases:
       - docker build -f Dockerfile -t $ECR_PREFIX/marketplace-admin-ui:latest -t $ECR_PREFIX/marketplace-admin-ui:$CODEBUILD_RESOLVED_SOURCE_VERSION .
       - cd ..
 
-      # Pull Redis from Docker Hub
-      - echo "Pulling Redis..."
-      - docker pull redis:7-alpine
-      - docker tag redis:7-alpine $ECR_PREFIX/marketplace-redis:latest
-      - docker tag redis:7-alpine $ECR_PREFIX/marketplace-redis:$CODEBUILD_RESOLVED_SOURCE_VERSION
-
   post_build:
     commands:
       - echo Pushing Docker images to ECR...
@@ -68,19 +62,14 @@ phases:
       - docker push $ECR_PREFIX/marketplace-admin-ui:latest
       - docker push $ECR_PREFIX/marketplace-admin-ui:$CODEBUILD_RESOLVED_SOURCE_VERSION
 
-      # Push Redis
-      - docker push $ECR_PREFIX/marketplace-redis:latest
-      - docker push $ECR_PREFIX/marketplace-redis:$CODEBUILD_RESOLVED_SOURCE_VERSION
-
       - echo Build completed on `date`
-      - echo "Successfully pushed 6 MARKETPLACE images to ECR"
+      - echo "Successfully pushed 5 MARKETPLACE images to ECR"
       - echo "Images:"
       - echo "  - $ECR_PREFIX/marketplace-api:latest"
       - echo "  - $ECR_PREFIX/marketplace-mcp:latest"
       - echo "  - $ECR_PREFIX/marketplace-worker:latest"
       - echo "  - $ECR_PREFIX/marketplace-debate-ui:latest"
       - echo "  - $ECR_PREFIX/marketplace-admin-ui:latest"
-      - echo "  - $ECR_PREFIX/marketplace-redis:latest"
 
 artifacts:
   files:
