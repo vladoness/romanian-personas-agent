@@ -20,20 +20,18 @@ FROM public.ecr.aws/docker/library/node:18-alpine
 
 WORKDIR /app
 
-# Install a simple HTTP server to serve the static files
-RUN npm install -g http-server
+# Install curl and wget for health checks
+RUN apk add --no-cache curl wget
 
-# Copy built files from builder or source files
-COPY --from=builder /app . .
-
-# Create necessary directories
-RUN mkdir -p dist public
+# Copy built files from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/server.js ./server.js
 
 EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
-    CMD wget --quiet --tries=1 --spider http://localhost:3001 || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:3001/health || exit 1
 
-# Serve with http-server (serves public/ or src/ as static files)
-CMD ["sh", "-c", "test -d dist && http-server dist -p 3001 --cors || http-server src -p 3001 --cors"]
+# Start custom server that handles /admin routing
+CMD ["node", "server.js"]
