@@ -162,6 +162,17 @@ async function searchWebContext(question) {
 // Call MCP server ask_persona tool
 async function askPersona(persona, query) {
   try {
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream'
+    };
+
+    // Add authorization if MCP_API_KEY is set
+    if (process.env.MCP_API_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.MCP_API_KEY}`;
+    }
+
     const response = await axios.post(
       `${MCP_SERVER_URL}/mcp`,
       {
@@ -177,10 +188,7 @@ async function askPersona(persona, query) {
         }
       },
       {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json, text/event-stream'
-        },
+        headers: headers,
         timeout: 120000 // 2 minute timeout
       }
     );
