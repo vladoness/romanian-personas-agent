@@ -5,9 +5,10 @@ import './Dashboard.css';
 
 function Dashboard() {
   const [personas, setPersonas] = useState([]);
+  const [collections, setCollections] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [stats, setStats] = useState({ total: 0, active: 0, ingesting: 0, draft: 0, failed: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, ingesting: 0, draft: 0, failed: 0, totalVectors: 0 });
 
   useEffect(() => {
     loadPersonas();
@@ -18,19 +19,34 @@ function Dashboard() {
     setError('');
 
     try {
-      // Fetch all personas (no status filter to get everything)
       const data = await api.getPersonas();
-      setPersonas(data.personas || []);
+      const personaList = data.personas || [];
+      setPersonas(personaList);
+
+      // Fetch collection stats for each persona in parallel
+      const collectionResults = {};
+      let totalVectors = 0;
+      const collectionPromises = personaList.map(async (p) => {
+        try {
+          const colData = await api.getCollections(p.persona_id);
+          collectionResults[p.persona_id] = colData;
+          totalVectors += colData.total_vectors || 0;
+        } catch {
+          collectionResults[p.persona_id] = { total_vectors: 0, collections: {} };
+        }
+      });
+      await Promise.all(collectionPromises);
+      setCollections(collectionResults);
 
       // Calculate stats
-      const stats = {
-        total: data.personas?.length || 0,
-        active: data.personas?.filter(p => p.status === 'active').length || 0,
-        ingesting: data.personas?.filter(p => p.status === 'ingesting').length || 0,
-        draft: data.personas?.filter(p => p.status === 'draft').length || 0,
-        failed: data.personas?.filter(p => p.status === 'failed').length || 0
-      };
-      setStats(stats);
+      setStats({
+        total: personaList.length,
+        active: personaList.filter(p => p.status === 'active').length,
+        ingesting: personaList.filter(p => p.status === 'ingesting').length,
+        draft: personaList.filter(p => p.status === 'draft').length,
+        failed: personaList.filter(p => p.status === 'failed').length,
+        totalVectors
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -45,10 +61,15 @@ function Dashboard() {
 
     try {
       await api.deletePersona(personaId);
-      loadPersonas(); // Reload list
+      loadPersonas();
     } catch (err) {
       alert(`Error deleting persona: ${err.message}`);
     }
+  };
+
+  const formatVectors = (n) => {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return String(n);
   };
 
   if (loading) {
@@ -81,8 +102,8 @@ function Dashboard() {
           <div className="stat-label">Active</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{stats.ingesting}</div>
-          <div className="stat-label">Ingesting</div>
+          <div className="stat-value">{formatVectors(stats.totalVectors)}</div>
+          <div className="stat-label">Total Vectors</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{stats.draft}</div>
@@ -106,40 +127,52 @@ function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-3">
-            {personas.map(persona => (
-              <div key={persona.id} className="persona-card">
-                <div className="persona-card-header">
-                  <h3>{persona.display_name}</h3>
-                  <span className={`badge badge-${persona.status}`}>
-                    {persona.status}
-                  </span>
-                </div>
-                <div className="persona-card-body">
-                  <div className="persona-years">
-                    {persona.birth_year} - {persona.death_year || 'present'}
+            {personas.map(persona => {
+              const colStats = collections[persona.persona_id];
+              const cols = colStats?.collections || {};
+              return (
+                <div key={persona.id} className="persona-card" style={{ borderTop: `3px solid ${persona.color}` }}>
+                  <div className="persona-card-header">
+                    <h3>{persona.display_name}</h3>
+                    <span className={`badge badge-${persona.status}`}>
+                      {persona.status}
+                    </span>
                   </div>
-                  <div className="persona-id">ID: {persona.persona_id}</div>
-                  <div className="persona-description">
-                    {persona.description?.substring(0, 100)}
-                    {persona.description?.length > 100 ? '...' : ''}
+                  <div className="persona-card-body">
+                    <div className="persona-years">
+                      {persona.birth_year} - {persona.death_year || 'present'}
+                    </div>
+                    <div className="persona-id">ID: {persona.persona_id}</div>
+                    <div className="persona-description">
+                      {persona.description?.substring(0, 100)}
+                      {persona.description?.length > 100 ? '...' : ''}
+                    </div>
+                    {colStats && (
+                      <div className="persona-vectors">
+                        <span title="Works vectors">W: {formatVectors(cols.works?.vectors || 0)}</span>
+                        <span title="Quotes vectors">Q: {formatVectors(cols.quotes?.vectors || 0)}</span>
+                        <span title="Profile vectors">P: {formatVectors(cols.profile?.vectors || 0)}</span>
+                        <strong title="Total vectors">{formatVectors(colStats.total_vectors || 0)} vectors</strong>
+                      </div>
+                    )}
+                  </div>
+                  <div className="persona-card-footer">
+                    <Link
+                      to={`/persona/${persona.persona_id}`}
+                      className="btn btn-secondary"
+                    >
+                      View Details
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(persona.persona_id, persona.display_name)}
+                      className="btn btn-danger"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
-                <div className="persona-card-footer">
-                  <Link
-                    to={`/persona/${persona.persona_id}`}
-                    className="btn btn-secondary"
-                  >
-                    View Details
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(persona.persona_id, persona.display_name)}
-                    className="btn btn-danger"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

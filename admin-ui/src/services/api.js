@@ -79,6 +79,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getCollections(personaId) {
+    const response = await this.client.get(`/api/personas/${personaId}/collections`);
+    return response.data;
+  }
+
   // File uploads
   async uploadFiles(personaId, collectionType, files) {
     const formData = new FormData();

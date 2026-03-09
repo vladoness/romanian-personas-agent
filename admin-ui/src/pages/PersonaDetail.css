@@ -188,6 +188,62 @@
   background: #f8f9fa;
 }
 
+.collections-stats {
+  margin-bottom: 24px;
+}
+
+.collections-stats h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.collections-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.collection-card {
+  background: #f0f2f5;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.collection-total {
+  background: #667eea;
+  color: white;
+}
+
+.collection-type {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.collection-vectors {
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+}
+
+.collection-total .collection-vectors {
+  color: white;
+}
+
+.collection-label {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.collection-total .collection-label {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .empty-state {
   text-align: center;
   padding: 60px 20px;

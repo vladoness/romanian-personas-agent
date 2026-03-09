@@ -10,6 +10,7 @@ function PersonaDetail() {
   const navigate = useNavigate();
   const [persona, setPersona] = useState(null);
   const [files, setFiles] = useState([]);
+  const [collections, setCollections] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('details');
@@ -17,7 +18,17 @@ function PersonaDetail() {
   useEffect(() => {
     loadPersona();
     loadFiles();
+    loadCollections();
   }, [personaId]);
+
+  const loadCollections = async () => {
+    try {
+      const data = await api.getCollections(personaId);
+      setCollections(data);
+    } catch (err) {
+      console.error('Error loading collections:', err);
+    }
+  };
 
   const loadPersona = async () => {
     setLoading(true);
@@ -130,7 +141,7 @@ function PersonaDetail() {
           className={`tab ${activeTab === 'files' ? 'active' : ''}`}
           onClick={() => setActiveTab('files')}
         >
-          Files ({files.length})
+          Data ({collections ? `${collections.total_vectors.toLocaleString()} vectors` : files.length + ' files'})
         </button>
         <button
           className={`tab ${activeTab === 'upload' ? 'active' : ''}`}
@@ -232,14 +243,38 @@ function PersonaDetail() {
 
         {activeTab === 'files' && (
           <div className="files-view">
+            {collections && (
+              <div className="collections-stats">
+                <h3>ChromaDB Collections</h3>
+                <div className="collections-grid">
+                  {['works', 'quotes', 'profile'].map(type => {
+                    const col = collections.collections?.[type];
+                    return (
+                      <div key={type} className="collection-card">
+                        <div className="collection-type">{type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                        <div className="collection-vectors">{(col?.vectors || 0).toLocaleString()}</div>
+                        <div className="collection-label">vectors</div>
+                      </div>
+                    );
+                  })}
+                  <div className="collection-card collection-total">
+                    <div className="collection-type">Total</div>
+                    <div className="collection-vectors">{(collections.total_vectors || 0).toLocaleString()}</div>
+                    <div className="collection-label">vectors</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <h3 style={{ marginTop: '24px' }}>Uploaded Files</h3>
             {files.length === 0 ? (
-              <div className="empty-state">
-                <p>No files uploaded yet.</p>
+              <div className="empty-state" style={{ padding: '20px' }}>
+                <p>No files uploaded via admin. Data was ingested directly via the scraper pipeline.</p>
                 <button
                   onClick={() => setActiveTab('upload')}
-                  className="btn btn-primary"
+                  className="btn btn-secondary"
                 >
-                  Upload Files
+                  Upload Additional Files
                 </button>
               </div>
             ) : (

@@ -234,6 +234,47 @@ def create_persona(
     }
 
 
+@router.get("/{persona_id}/collections", response_model=dict)
+def get_persona_collections(
+    persona_id: str,
+    db: Session = Depends(get_db_session)
+):
+    """
+    Get ChromaDB collection stats for a persona (vector counts per collection).
+    No authentication required.
+    """
+    persona = db.query(Persona).filter(Persona.persona_id == persona_id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail=f"Persona '{persona_id}' not found")
+
+    from ingest.run_ingestion import _get_chroma_client
+
+    collections = {}
+    total_vectors = 0
+
+    try:
+        client = _get_chroma_client()
+        for col_type in ["works", "quotes", "profile"]:
+            col_name = f"{persona_id}_{col_type}"
+            try:
+                col = client.get_collection(col_name)
+                count = col.count()
+                collections[col_type] = {"name": col_name, "vectors": count}
+                total_vectors += count
+            except Exception:
+                collections[col_type] = {"name": col_name, "vectors": 0}
+    except Exception as e:
+        logger.error(f"Failed to connect to ChromaDB: {e}")
+        for col_type in ["works", "quotes", "profile"]:
+            collections[col_type] = {"name": f"{persona_id}_{col_type}", "vectors": 0, "error": str(e)}
+
+    return {
+        "persona_id": persona_id,
+        "collections": collections,
+        "total_vectors": total_vectors
+    }
+
+
 @router.delete("/{persona_id}", response_model=dict)
 def delete_persona(
     persona_id: str,
