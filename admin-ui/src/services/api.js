@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000';
+// Use environment variable if available, otherwise use current origin (for production)
+// In production behind ALB, admin UI is at /admin and API is at /api on same host
+const API_BASE_URL = import.meta.env.VITE_API_URL || window.location.origin;
 
 class ApiClient {
   constructor() {
