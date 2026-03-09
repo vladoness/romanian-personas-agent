@@ -58,7 +58,8 @@ class ApiClient {
 
   // Personas
   async getPersonas(status = null) {
-    const params = status ? { status } : {};
+    const params = { format: 'array' };
+    if (status) params.status = status;
     const response = await this.client.get('/api/personas', { params });
     return response.data;
   }

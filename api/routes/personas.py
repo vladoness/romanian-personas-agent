@@ -112,8 +112,9 @@ def list_personas(
 
     if status:
         query = query.filter(Persona.status == status)
-    else:
-        # Default: only show active personas
+    elif format != "array":
+        # Default for debate UI: only show active personas
+        # Admin UI (format=array) sees all statuses
         query = query.filter(Persona.status == "active")
 
     personas = query.all()
