@@ -13,8 +13,17 @@ logger = logging.getLogger(__name__)
 Base = declarative_base()
 
 # Database path (can be overridden with DATABASE_URL env var)
-DATABASE_PATH = Path(__file__).parent.parent / "personas.db"
-DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DATABASE_PATH}")
+_default_db_path = Path(__file__).parent.parent / "personas.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{_default_db_path}")
+
+# Extract actual file path from DATABASE_URL for existence checks
+_db_url = DATABASE_URL
+if _db_url.startswith("sqlite:////"):
+    DATABASE_PATH = Path(_db_url.replace("sqlite:////", "/"))
+elif _db_url.startswith("sqlite:///"):
+    DATABASE_PATH = Path(_db_url.replace("sqlite:///", ""))
+else:
+    DATABASE_PATH = _default_db_path
 
 
 class Persona(Base):

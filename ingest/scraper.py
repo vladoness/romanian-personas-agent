@@ -61,6 +61,7 @@ WIKISOURCE_AUTHORS = {
     "caragiale": "https://ro.wikisource.org/wiki/Autor:Ion_Luca_Caragiale",
     "cioran": "https://ro.wikisource.org/wiki/Autor:Emil_Cioran",
     "eliade": "https://ro.wikisource.org/wiki/Autor:Mircea_Eliade",
+    "iorga": "https://ro.wikisource.org/wiki/Autor:Nicolae_Iorga",
 }
 
 # Known major works to ensure they're captured (fallback if not found via author page)
@@ -276,6 +277,10 @@ WIKIPEDIA_PROFILE_URLS = {
         ("ro", "https://ro.wikipedia.org/wiki/Emil_Cioran"),
         ("en", "https://en.wikipedia.org/wiki/Emil_Cioran"),
     ],
+    "iorga": [
+        ("ro", "https://ro.wikipedia.org/wiki/Nicolae_Iorga"),
+        ("en", "https://en.wikipedia.org/wiki/Nicolae_Iorga"),
+    ],
 }
 
 
@@ -367,6 +372,7 @@ WIKIQUOTE_URLS = {
         "https://ro.wikiquote.org/wiki/Emil_Cioran",
         "https://en.wikiquote.org/wiki/Emil_Cioran",
     ],
+    "iorga": "https://ro.wikiquote.org/wiki/Nicolae_Iorga",
 }
 
 GOODREADS_QUOTE_URLS = {
@@ -375,6 +381,7 @@ GOODREADS_QUOTE_URLS = {
     "caragiale": "https://www.goodreads.com/author/quotes/319444.Ion_Luca_Caragiale",
     "eliade": "https://www.goodreads.com/author/quotes/33244.Mircea_Eliade",
     "cioran": "https://www.goodreads.com/author/quotes/8463.Emil_M_Cioran",
+    "iorga": "https://www.goodreads.com/author/quotes/862996.Nicolae_Iorga",
 }
 
 ROMANIAN_QUOTE_SITES = {
@@ -534,6 +541,13 @@ WORK_ARTICLE_URLS = {
         ("Despre neajunsul de a te fi născut", "https://ro.wikipedia.org/wiki/Despre_neajunsul_de_a_te_fi_n%C4%83scut"),
         ("Emil Cioran (English)", "https://en.wikipedia.org/wiki/Emil_Cioran"),
         ("The Trouble with Being Born", "https://en.wikipedia.org/wiki/The_Trouble_with_Being_Born"),
+    ],
+    "iorga": [
+        ("Istoria românilor", "https://ro.wikipedia.org/wiki/Istoria_rom%C3%A2nilor_(Nicolae_Iorga)"),
+        ("Universitatea Populară de la Vălenii de Munte", "https://ro.wikipedia.org/wiki/Universitatea_Popular%C4%83_de_la_V%C4%83lenii_de_Munte"),
+        ("Neamul Românesc (ziar)", "https://ro.wikipedia.org/wiki/Neamul_Rom%C3%A2nesc_(ziar)"),
+        ("Bizantul după Bizanț", "https://ro.wikipedia.org/wiki/Bizan%C8%9Bul_dup%C4%83_Bizan%C8%9B"),
+        ("Nicolae Iorga (English)", "https://en.wikipedia.org/wiki/Nicolae_Iorga"),
     ],
 }
 
