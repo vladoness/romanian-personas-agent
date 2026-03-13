@@ -14,6 +14,7 @@ COPY config.py .
 COPY ingest/ ./ingest/
 COPY agent/ ./agent/
 COPY personas/ ./personas/
+COPY models/ ./models/
 
 # Install Python deps
 RUN pip install --no-cache-dir .
